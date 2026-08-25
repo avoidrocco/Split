@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#111827" />
+<title>Workout Checklist</title>
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#f5f7fb;
+    --card:#ffffff;
+    --text:#111827;
+    --muted:#6b7280;
+    --border:#e5e7eb;
+    --accent:#2563eb;
+    --accent-soft:#dbeafe;
+    --done:#16a34a;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b0f17;
+      --card:#141a24;
+      --text:#f3f4f6;
+      --muted:#9ca3af;
+      --border:#263041;
+      --accent:#60a5fa;
+      --accent-soft:#172554;
+      --done:#4ade80;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+  }
+  .wrap{
+    width:min(760px,100%);
+    margin:0 auto;
+    padding:calc(18px + env(safe-area-inset-top)) 14px calc(32px + env(safe-area-inset-bottom));
+  }
+  h1{font-size:28px;line-height:1.1;margin:4px 0 6px}
+  .sub{color:var(--muted);margin:0 0 18px;font-size:15px}
+  .day-nav{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding:2px 0 10px;
+    scrollbar-width:none;
+  }
+  .day-nav::-webkit-scrollbar{display:none}
+  button{
+    font:inherit;
+  }
+  .day-btn,.action-btn,.seg-btn{
+    border:1px solid var(--border);
+    background:var(--card);
+    color:var(--text);
+    border-radius:12px;
+    min-height:44px;
+    padding:9px 13px;
+    cursor:pointer;
+  }
+  .day-btn{white-space:nowrap;font-weight:650}
+  .day-btn.active{
+    border-color:var(--accent);
+    background:var(--accent-soft);
+    color:var(--accent);
+  }
+  .panel{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:18px;
+    overflow:hidden;
+  }
+  .panel-head{
+    padding:16px 16px 12px;
+    border-bottom:1px solid var(--border);
+  }
+  .panel-head-row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+  }
+  h2{font-size:21px;margin:0 0 4px}
+  .day-note{font-size:14px;color:var(--muted);margin:0}
+  .progress{
+    margin-top:12px;
+    height:8px;
+    border-radius:999px;
+    overflow:hidden;
+    background:var(--border);
+  }
+  .progress > div{
+    height:100%;
+    width:0%;
+    background:var(--done);
+    transition:width .2s ease;
+  }
+  .exercise-list{list-style:none;padding:0;margin:0}
+  .exercise{
+    display:grid;
+    grid-template-columns:44px minmax(0,1fr);
+    gap:10px;
+    padding:14px 14px;
+    border-bottom:1px solid var(--border);
+    align-items:start;
+  }
+  .exercise:last-child{border-bottom:0}
+  .exercise input{
+    width:26px;
+    height:26px;
+    margin:4px 0 0 4px;
+    accent-color:var(--done);
+  }
+  .name{
+    font-weight:700;
+    font-size:16px;
+    line-height:1.25;
+  }
+  .meta{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:6px;
+  }
+  .pill{
+    font-size:12px;
+    color:var(--muted);
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:4px 7px;
+  }
+  .exercise.done .name{
+    text-decoration:line-through;
+    color:var(--muted);
+  }
+  .controls{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-top:12px;
+  }
+  .action-btn{
+    flex:1 1 150px;
+    font-weight:650;
+  }
+  .seg{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+  }
+  .seg-btn{flex:1;font-weight:700}
+  .seg-btn.active{
+    border-color:var(--accent);
+    background:var(--accent-soft);
+    color:var(--accent);
+  }
+  .rest{
+    padding:28px 18px;
+    text-align:center;
+    color:var(--muted);
+  }
+  .footer{
+    color:var(--muted);
+    font-size:13px;
+    line-height:1.45;
+    padding:14px 4px 0;
+  }
+  .count{
+    white-space:nowrap;
+    font-weight:700;
+    color:var(--muted);
+    font-size:14px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Workout Checklist</h1>
+  <p class="sub">Upper / Lower / Rest / Push / Pull / Legs-or-Shoulders / Rest</p>
+
+  <div class="day-nav" id="dayNav" aria-label="Workout days"></div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div class="panel-head-row">
+        <div>
+          <h2 id="dayTitle"></h2>
+          <p class="day-note" id="dayNote"></p>
+        </div>
+        <div class="count" id="count"></div>
+      </div>
+      <div class="seg" id="saturdayToggle" hidden>
+        <button class="seg-btn" type="button" data-sat="legs">Legs</button>
+        <button class="seg-btn" type="button" data-sat="shoulders">Shoulders + Core</button>
+      </div>
+      <div class="progress" aria-label="Workout progress"><div id="progressBar"></div></div>
+    </div>
+
+    <ul class="exercise-list" id="exerciseList"></ul>
+  </section>
+
+  <div class="controls">
+    <button type="button" class="action-btn" id="resetDay">Reset this day</button>
+    <button type="button" class="action-btn" id="resetWeek">Reset whole week</button>
+  </div>
+
+  <p class="footer">
+    “Failure” means technical failure: stop when you cannot complete another clean rep.
+    For dumbbell compounds, use 0–1 RIR if continuing would compromise position or safety.
+  </p>
+</div>
+
+<script>
+(() => {
+  const data = {
+    mon: {
+      label: "Mon", title: "Monday — Upper",
+      note: "Balanced chest + back, then delts and arms.",
+      exercises: [
+        ["Machine Chest Press","3 × 6–10","Last set to failure"],
+        ["Lat Pulldown","3 × 6–10","Last set to failure"],
+        ["Seated Machine / Cable Row","2 × 8–12","Failure"],
+        ["Incline Dumbbell Press","2 × 8–12","0–1 RIR"],
+        ["Lateral Raise","3 × 12–20","Failure"],
+        ["Cable Triceps Pressdown","2 × 10–15","Failure"],
+        ["Dumbbell Curl","2 × 10–15","Failure"]
+      ]
+    },
+    tue: {
+      label: "Tue", title: "Tuesday — Lower",
+      note: "Primary lower-body day.",
+      exercises: [
+        ["Hack Squat or Leg Press","3 × 6–10","Last set to failure"],
+        ["Dumbbell Romanian Deadlift","2 × 8–12","0–1 RIR"],
+        ["Leg Curl","3 × 8–12","Failure"],
+        ["Leg Extension","2 × 10–15","Failure"],
+        ["Hip Abductor","2 × 12–20","Failure"],
+        ["Calf Raise","3 × 8–15","Failure"],
+        ["Cable Crunch","3 × 10–15","Failure"]
+      ]
+    },
+    wed: {label:"Wed", title:"Wednesday — Rest", note:"Recovery day.", exercises:[]},
+    thu: {
+      label: "Thu", title: "Thursday — Push",
+      note: "Chest, shoulders and triceps.",
+      exercises: [
+        ["Incline Machine Chest Press","3 × 8–12","Last set to failure"],
+        ["Dumbbell Shoulder Press","2 × 6–10","0–1 RIR"],
+        ["Pec Deck","3 × 10–15","Failure"],
+        ["Cable Lateral Raise","3 × 12–20","Failure"],
+        ["Rope Triceps Pressdown","2 × 10–15","Failure"],
+        ["Overhead Cable Triceps Extension","2 × 10–15","Failure"]
+      ]
+    },
+    fri: {
+      label: "Fri", title: "Friday — Pull",
+      note: "Back, rear delts and biceps.",
+      exercises: [
+        ["Lat Pulldown / Assisted Pull-Up","3 × 6–10","Last set to failure"],
+        ["Chest-Supported Machine Row","3 × 8–12","Last set to failure"],
+        ["Single-Arm Cable Row","2 × 8–12","Failure"],
+        ["Reverse Pec Deck","3 × 12–20","Failure"],
+        ["Straight-Arm Pulldown","2 × 10–15","Failure"],
+        ["Preacher Curl Machine","2 × 8–12","Failure"],
+        ["Dumbbell Hammer Curl","2 × 10–15","Failure"]
+      ]
+    },
+    satLegs: {
+      label:"Sat", title:"Saturday — Legs",
+      note:"Use when your legs feel recovered.",
+      exercises:[
+        ["Leg Press or Hack Squat","3 × 8–12","Last set to failure"],
+        ["Dumbbell Bulgarian Split Squat","2 × 8–12 / leg","0–1 RIR"],
+        ["Leg Curl","2 × 10–15","Failure"],
+        ["Leg Extension","2 × 10–15","Failure"],
+        ["Hip Thrust / Glute Machine","2 × 8–12","Last set to failure"],
+        ["Calf Raise","3 × 10–20","Failure"],
+        ["Ab Machine / Knee Raise","2–3 × 10–20","Failure"]
+      ]
+    },
+    satShoulders: {
+      label:"Sat", title:"Saturday — Shoulders + Core",
+      note:"Swap this in when your legs need more recovery.",
+      exercises:[
+        ["Machine Shoulder Press","2 × 8–12","Last set to failure"],
+        ["Cable Lateral Raise","3 × 12–20","Failure"],
+        ["Reverse Pec Deck","3 × 12–20","Failure"],
+        ["Machine Lateral Raise","2 × 10–15","Failure"],
+        ["Face Pull","2 × 12–20","Failure"],
+        ["Shrug","2 × 10–15","Failure"],
+        ["Cable Crunch","3 × 10–15","Failure"],
+        ["Hanging Knee / Leg Raise","3 × 8–15","Failure"],
+        ["Pallof Press","2 × 10–15 / side","0–1 RIR"]
+      ]
+    },
+    sun: {label:"Sun", title:"Sunday — Rest", note:"Recovery day.", exercises:[]}
+  };
+
+  const storageKey = "workout-checklist-v1";
+  const defaultState = {day:"mon", saturday:"legs", checks:{}};
+  let state = {...defaultState};
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
+    if (saved && typeof saved === "object") {
+      state = {
+        day: saved.day || "mon",
+        saturday: saved.saturday === "shoulders" ? "shoulders" : "legs",
+        checks: saved.checks || {}
+      };
+    }
+  } catch {}
+
+  const nav = document.getElementById("dayNav");
+  const list = document.getElementById("exerciseList");
+  const title = document.getElementById("dayTitle");
+  const note = document.getElementById("dayNote");
+  const count = document.getElementById("count");
+  const progressBar = document.getElementById("progressBar");
+  const saturdayToggle = document.getElementById("saturdayToggle");
+
+  const order = ["mon","tue","wed","thu","fri","sat","sun"];
+
+  function keyForDay(day) {
+    if (day === "sat") return state.saturday === "shoulders" ? "satShoulders" : "satLegs";
+    return day;
+  }
+
+  function save() {
+    try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch {}
+  }
+
+  function renderNav() {
+    nav.innerHTML = "";
+    order.forEach(day => {
+      const key = day === "sat" ? keyForDay(day) : day;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "day-btn" + (state.day === day ? " active" : "");
+      btn.textContent = data[key].label;
+      btn.setAttribute("aria-pressed", state.day === day ? "true" : "false");
+      btn.addEventListener("click", () => {
+        state.day = day;
+        save();
+        render();
+      });
+      nav.appendChild(btn);
+    });
+  }
+
+  function renderSaturdayToggle() {
+    saturdayToggle.hidden = state.day !== "sat";
+    saturdayToggle.querySelectorAll("[data-sat]").forEach(btn => {
+      const active = btn.dataset.sat === state.saturday;
+      btn.classList.toggle("active", active);
+      btn.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+
+  function renderWorkout() {
+    const workoutKey = keyForDay(state.day);
+    const workout = data[workoutKey];
+    title.textContent = workout.title;
+    note.textContent = workout.note;
+    list.innerHTML = "";
+
+    if (!workout.exercises.length) {
+      const li = document.createElement("li");
+      li.className = "rest";
+      li.textContent = "Rest, recover, and come back ready for the next session.";
+      list.appendChild(li);
+      count.textContent = "";
+      progressBar.style.width = "0%";
+      return;
+    }
+
+    let completed = 0;
+    workout.exercises.forEach((ex, index) => {
+      const id = workoutKey + "-" + index;
+      const checked = !!state.checks[id];
+      if (checked) completed++;
+
+      const li = document.createElement("li");
+      li.className = "exercise" + (checked ? " done" : "");
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = checked;
+      checkbox.id = id;
+      checkbox.setAttribute("aria-label", "Complete " + ex[0]);
+      checkbox.addEventListener("change", () => {
+        state.checks[id] = checkbox.checked;
+        save();
+        renderWorkout();
+      });
+
+      const details = document.createElement("div");
+      const label = document.createElement("label");
+      label.className = "name";
+      label.htmlFor = id;
+      label.textContent = ex[0];
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+
+      const reps = document.createElement("span");
+      reps.className = "pill";
+      reps.textContent = ex[1];
+
+      const effort = document.createElement("span");
+      effort.className = "pill";
+      effort.textContent = ex[2];
+
+      meta.append(reps, effort);
+      details.append(label, meta);
+      li.append(checkbox, details);
+      list.appendChild(li);
+    });
+
+    const total = workout.exercises.length;
+    count.textContent = completed + " / " + total;
+    progressBar.style.width = ((completed / total) * 100) + "%";
+  }
+
+  function render() {
+    renderNav();
+    renderSaturdayToggle();
+    renderWorkout();
+  }
+
+  saturdayToggle.querySelectorAll("[data-sat]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.saturday = btn.dataset.sat;
+      save();
+      render();
+    });
+  });
+
+  document.getElementById("resetDay").addEventListener("click", () => {
+    const workoutKey = keyForDay(state.day);
+    data[workoutKey].exercises.forEach((_, i) => delete state.checks[workoutKey + "-" + i]);
+    save();
+    renderWorkout();
+  });
+
+  document.getElementById("resetWeek").addEventListener("click", () => {
+    state.checks = {};
+    save();
+    renderWorkout();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
